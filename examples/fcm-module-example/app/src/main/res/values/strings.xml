@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">OpenPush FCM Module</string>
+    <string name="example_channel_name">Example pushes</string>
+    <string name="example_not_configured">Not initialized — set OPENPUSH_APP_ID and OPENPUSH_SDK_KEY in local.properties, then rebuild.</string>
+    <string name="example_status">initialized %1$b · opted in %4$b\n\nSubscription id\n%2$s\n\nFCM token\n%3$s\n\nNotification permission granted: %5$b\n\nLast push\ntitle: %6$s\nop_message_id: %7$s\nseen: %8$s</string>
+</resources>

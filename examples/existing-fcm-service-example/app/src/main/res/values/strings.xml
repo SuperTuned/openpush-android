@@ -1,0 +1,8 @@
+<resources>
+    <string name="app_name">Existing FCM service</string>
+    <string name="channel_name">Game news</string>
+    <string name="example_not_configured">Not initialized — copy app/openpush.properties.example to app/openpush.properties, fill in the keys, then rebuild.</string>
+    <string name="example_allowed">allowed</string>
+    <string name="example_not_allowed">not allowed</string>
+    <string name="example_status">Subscription id\n%1$s\n\nFCM token\n%2$s\n\nNotification permission: %3$s\n\nDelivery mode: %4$s\nOpenPushMessagingService: %5$s\n\nLast push\ntitle: %6$s\nop_message_id: %7$s\nreceived by: %8$s</string>
+</resources>

@@ -1,0 +1,10 @@
+# Copy to local.properties and fill in your own values, or pass them on the
+# command line instead:
+#
+#   ./gradlew :app:assembleDebug -POPENPUSH_APP_ID=... -POPENPUSH_SDK_KEY=... -POPENPUSH_SERVER_URL=...
+#
+# Left at the placeholders below, the app builds and runs but deliberately does
+# not initialize the SDK, so it never registers a subscription.
+OPENPUSH_APP_ID=replace-with-app-id
+OPENPUSH_SDK_KEY=replace-with-public-sdk-key
+OPENPUSH_SERVER_URL=replace-with-server-url

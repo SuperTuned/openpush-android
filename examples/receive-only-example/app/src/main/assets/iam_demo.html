@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<!--
+  A self-contained in-app message fixture for the Feature Lab.
+
+  It is deliberately a plain document with inline CSS and no network reference of any
+  kind: OpenPush.InAppMessages.previewLocalDocument shows it through the shipping
+  presenter, whose WebView has file access, content access and cross-origin file reads
+  all switched off, and loads it at an opaque origin with no base URL. Anything this
+  file had to fetch would simply not arrive.
+
+  It speaks the same bridge a server-rendered message speaks:
+    window.OpenPushAndroid.postMessage(JSON.stringify(envelope))
+  with the three envelopes the SDK understands — rendering_complete, action_taken and
+  page_change. Only the first two are used here.
+-->
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>OpenPush in-app demo</title>
+    <style>
+      :root { color-scheme: light dark; }
+      * { box-sizing: border-box; }
+      html, body {
+        margin: 0;
+        padding: 0;
+        background: transparent;
+        font-family: -apple-system, "Roboto", "Helvetica Neue", sans-serif;
+      }
+      .card {
+        margin: 0 18px;
+        padding: 22px;
+        border-radius: 18px;
+        background: #ffffff;
+        color: #101418;
+        box-shadow: 0 18px 40px rgba(0, 0, 0, 0.28);
+      }
+      .eyebrow {
+        margin: 0 0 6px;
+        font-size: 11px;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        font-weight: 600;
+        color: #0f7a5a;
+      }
+      h1 { margin: 0 0 8px; font-size: 20px; line-height: 1.25; }
+      p { margin: 0 0 18px; font-size: 14px; line-height: 1.5; color: #46505a; }
+      button {
+        width: 100%;
+        border: 0;
+        border-radius: 10px;
+        padding: 13px 16px;
+        font-size: 15px;
+        font-weight: 600;
+        cursor: pointer;
+      }
+      .primary { background: #0f7a5a; color: #ffffff; }
+      .secondary {
+        margin-top: 10px;
+        background: transparent;
+        color: #0f7a5a;
+        border: 1px solid #c6d2cd;
+      }
+      @media (prefers-color-scheme: dark) {
+        .card { background: #14181c; color: #eef2f5; box-shadow: 0 18px 40px rgba(0, 0, 0, 0.55); }
+        p { color: #9fb0bd; }
+        .eyebrow { color: #3ddc9a; }
+        .primary { background: #3ddc9a; color: #06231a; }
+        .secondary { color: #3ddc9a; border-color: #2c3a43; }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="card">
+      <p class="eyebrow">In-app message</p>
+      <h1>This is the real presenter.</h1>
+      <p>
+        The card you are looking at is a WebView in the SDK's own popup, laid out from the
+        <code>rendering_complete</code> envelope this document sent on load. The buttons
+        below post <code>action_taken</code> envelopes across the same bridge a
+        server-rendered message uses.
+      </p>
+      <button class="primary" onclick="gotIt()">Got it</button>
+      <button class="secondary" onclick="openLink()">Open link</button>
+    </div>
+
+    <script>
+      function post(envelope) {
+        if (window.OpenPushAndroid) {
+          window.OpenPushAndroid.postMessage(JSON.stringify(envelope));
+        }
+      }
+
+      // Tells the host where to put this document and how tall it is. Until it arrives the
+      // popup is a full-screen transparent window showing nothing.
+      function reportRendered() {
+        post({
+          type: "rendering_complete",
+          displayLocation: "center",
+          pageMetaData: { rect: { height: 260 } },
+          dragToDismissDisabled: false
+        });
+      }
+
+      // Closes the message: the host records a display, not a dismissal.
+      function gotIt() {
+        post({
+          type: "action_taken",
+          body: { id: "demo-click", name: "demo", close: true }
+        });
+      }
+
+      // A url action. `url_target: "browser"` leaves the app; "webview" would open a
+      // Custom Tab when the device has a browser that supports one.
+      function openLink() {
+        post({
+          type: "action_taken",
+          body: {
+            id: "demo-link",
+            name: "demo_link",
+            url: "https://openpush.ai",
+            url_target: "browser",
+            close: false
+          }
+        });
+      }
+
+      if (document.readyState === "complete") {
+        reportRendered();
+      } else {
+        window.addEventListener("load", reportRendered);
+      }
+    </script>
+  </body>
+</html>

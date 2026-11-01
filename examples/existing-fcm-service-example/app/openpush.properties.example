@@ -1,0 +1,5 @@
+# Copy to openpush.properties (never committed) and paste the console's values. The setup plugin
+# merges them into the manifest as ai.openpush.app_id and ai.openpush.sdk_key. Without the file the
+# app still builds; it just does not initialize the SDK.
+ai.openpush.app_id=replace-with-app-id
+ai.openpush.sdk_key=replace-with-public-sdk-key

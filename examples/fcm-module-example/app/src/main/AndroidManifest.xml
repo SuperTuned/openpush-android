@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+
+    <application
+        android:name=".ExampleApplication"
+        android:label="@string/app_name"
+        android:icon="@drawable/ic_stat_example"
+        android:allowBackup="false">
+
+        <!-- There is deliberately NO <service> for com.google.firebase.MESSAGING_EVENT
+             here. openpush-android-fcm declares OpenPushMessagingService and
+             OpenPushClickActivity in its own manifest, and manifest merging brings
+             both into this app. Declaring one here would take the delivery back and
+             defeat the point of the module. -->
+
+        <!-- The two knobs the module's renderer reads. Without them it falls back to
+             its own channel id and to this app's launcher icon. -->
+        <meta-data
+            android:name="ai.openpush.notification_channel_id"
+            android:value="example_pushes" />
+        <meta-data
+            android:name="ai.openpush.notification_icon"
+            android:resource="@drawable/ic_stat_example" />
+
+        <!-- Data-only pushes in the background go to this class, created by reflection. -->
+        <meta-data
+            android:name="ai.openpush.background_message_handler"
+            android:value="ai.openpush.example.fcm.ExampleBackgroundHandler" />
+
+        <activity
+            android:name=".MainActivity"
+            android:exported="true"
+            android:launchMode="singleTask">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+    </application>
+</manifest>

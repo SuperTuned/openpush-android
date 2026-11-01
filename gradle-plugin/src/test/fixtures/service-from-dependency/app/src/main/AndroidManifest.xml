@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The app's own service and OpenPush's, declared here so the fixture needs no SDK artifact; a third
+     service arrives from the :vendorlib dependency. -->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <application android:label="Service from a dependency">
+        <service
+            android:name=".GameMessagingService"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="com.google.firebase.MESSAGING_EVENT" />
+            </intent-filter>
+        </service>
+        <service
+            android:name="ai.openpush.android.fcm.OpenPushMessagingService"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="com.google.firebase.MESSAGING_EVENT" />
+            </intent-filter>
+        </service>
+    </application>
+</manifest>

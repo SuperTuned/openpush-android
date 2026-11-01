@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+
+    <application
+        android:name=".ExampleApplication"
+        android:label="@string/app_name"
+        android:icon="@drawable/ic_launcher_example"
+        android:allowBackup="false"
+        android:dataExtractionRules="@xml/data_extraction_rules">
+
+        <!-- The one non-code entry the migration adds. OpenPush needs a
+             public SDK key in addition to the app id, and it reads it from here
+             so that initWithContext keeps the v5 signature. -->
+        <meta-data android:name="ai.openpush.sdk_key"
+                   android:value="${openPushSdkKey}" />
+
+        <activity
+            android:name=".MainActivity"
+            android:exported="true"
+            android:launchMode="singleTask">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+        <service
+            android:name=".ExampleMessagingService"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="com.google.firebase.MESSAGING_EVENT" />
+            </intent-filter>
+        </service>
+
+        <!-- This app kept its own messaging service, so it removes the one the facade's
+             FCM module merges in: two services must not filter the same intent. -->
+        <service
+            android:name="ai.openpush.android.fcm.OpenPushMessagingService"
+            tools:node="remove" />
+    </application>
+</manifest>

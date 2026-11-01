@@ -1,0 +1,28 @@
+version: 2
+updates:
+  - package-ecosystem: gradle
+    target-branch: "main"
+    directories:
+      - "/"
+      - "/gradle-plugin"
+      - "/examples/existing-fcm-service-example"
+      - "/examples/fcm-module-example"
+      - "/examples/migrated-from-onesignal"
+      - "/examples/receive-only-example"
+    schedule:
+      interval: "monthly"
+    # Version updates off: the SDK keeps its minimum dependency versions so apps aren't forced up.
+    # Security updates still open PRs (Dependabot security updates are separate).
+    open-pull-requests-limit: 0
+  - package-ecosystem: "github-actions"
+    target-branch: "main"
+    directory: "/"
+    schedule:
+      interval: "monthly"
+    open-pull-requests-limit: 1
+    groups:
+      github-actions:
+        patterns: ["*"]
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]

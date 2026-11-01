@@ -1,0 +1,44 @@
+# Exceptions for scripts/check-public-content.sh, one per line:
+#   <path glob> <pattern id> [<line regex>] -- <reason>
+# Keep this list as short as possible. An entry that matches nothing fails the check.
+
+# The ignore rules that keep working notes and agent state out of the repository.
+.gitignore internal-doc ^(PRODUCT|DESIGN)\.md$ -- ignore rules for local working notes
+.gitignore agent-path ^\.(impeccable|claude|superpowers)/$ -- ignore rules for local tool state
+
+# NOTICE and the compatibility docs carry the trademark and non-affiliation notice.
+NOTICE onesignal -- trademark and non-affiliation notice
+NOTICE onesignal-inc -- trademark and non-affiliation notice
+MIGRATING-FROM-ONESIGNAL.md onesignal -- migration guide for the compatibility layer
+MIGRATING-FROM-ONESIGNAL.md com-onesignal -- migration guide names the previous SDK's dependency and package
+MIGRATING-FROM-ONESIGNAL.md onesignal-inc -- trademark notice in the migration guide
+examples/migrated-from-onesignal/README.md onesignal-inc -- trademark notice in the migrated example
+openpush-onesignal-compat/build.gradle.kts onesignal-inc trademark of OneSignal, Inc|sponsored by OneSignal, Inc -- trademark notice in the compatibility POM description
+
+# The README's one-line pointer to the compatibility layer.
+README.md onesignal Apps migrating from the OneSignal SDK can use the optional compatibility layer -- pointer to the compatibility layer
+
+# The compatibility layer: its module and the migrated example app.
+openpush-onesignal-compat/** onesignal -- the compatibility facade provides the previous SDK's API names for migrating apps
+openpush-onesignal-compat/** com-onesignal -- the compatibility facade names the previous SDK's package it replaces
+examples/migrated-from-onesignal/** onesignal -- example app migrated from the previous SDK
+examples/migrated-from-onesignal/** com-onesignal -- the migrated example shows the dependency it replaced
+
+# Migration detection in the setup plugin, and the fixture and test that prove it recognises a
+# previous SDK's manifest entries, dependency and icon.
+gradle-plugin/src/main/kotlin/ai/openpush/gradle/setup/VendorFingerprints.kt onesignal -- fingerprints of the previous SDK that setup detects
+gradle-plugin/src/main/kotlin/ai/openpush/gradle/setup/VendorFingerprints.kt com-onesignal -- fingerprints of the previous SDK that setup detects
+gradle-plugin/src/test/fixtures/receiver-sdk/** onesignal -- fixture app with the previous SDK installed
+gradle-plugin/src/test/fixtures/receiver-sdk/** com-onesignal -- fixture app with the previous SDK installed
+gradle-plugin/src/test/kotlin/ai/openpush/gradle/setup/OpenPushDoctorFixtureTests.kt onesignal OneSignalFingerprint -- test of migration detection
+
+# Runtime migration support in the core SDK: the previous SDK's preference file and key, read once
+# to report its token; the server's reserved alias label; and the previous SDK's default icon names
+# that a migrated app keeps using.
+openpush/src/main/java/ai/openpush/android/PriorInstall.kt onesignal PRIOR_PREFS_FILE = "OneSignal"|PRIOR_LEGACY_STATE_KEY = "ONESIGNAL_USERSTATE_SYNCVALYES_CURRENT_STATE" -- previous SDK's stored state, read for migration
+openpush/src/main/java/ai/openpush/android/OpenPush.kt onesignal RESERVED_ALIAS_LABELS = setOf\("external_id", "onesignal_id"\) -- alias label reserved by the server
+openpush-fcm/src/main/java/ai/openpush/android/fcm/OpenPushNotificationRenderer.kt onesignal ic_stat_onesignal_default|ic_onesignal_large_icon_default -- default icon names a migrated app keeps
+openpush-fcm/src/test/java/ai/openpush/android/fcm/OpenPushNotificationRendererTests.kt onesignal ic_stat_onesignal_default|ic_onesignal_large_icon_default -- tests of the migrated icon names
+
+# Test data.
+openpush/src/test/java/ai/openpush/android/OpenPushEmailSubscriptionTests.kt email "a@b@c\.com" -- deliberately malformed address in the validation test

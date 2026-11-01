@@ -1,0 +1,90 @@
+package ai.openpush.example.migrated
+
+import com.onesignal.OneSignal
+import android.content.Intent
+import android.os.Bundle
+import android.util.Log
+import android.widget.Button
+import android.widget.LinearLayout
+import android.widget.TextView
+import androidx.activity.ComponentActivity
+import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.launch
+
+class MainActivity : ComponentActivity() {
+
+    private val pushToggle by lazy { Button(this) }
+    private val subscriptionStatus by lazy { TextView(this) }
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        pushToggle.setOnClickListener { togglePush() }
+        setContentView(
+            LinearLayout(this).apply {
+                orientation = LinearLayout.VERTICAL
+                setPadding(64, 64, 64, 64)
+                addView(TextView(this@MainActivity).apply {
+                    text = getString(R.string.example_status)
+                })
+                addView(pushToggle)
+                addView(subscriptionStatus)
+            },
+        )
+        askForNotificationPermission()
+        reportClick(intent)
+        refresh()
+    }
+
+    override fun onResume() {
+        super.onResume()
+        refresh()
+    }
+
+    private fun askForNotificationPermission() {
+        lifecycleScope.launch {
+            val granted = OneSignal.Notifications.requestPermission(fallbackToSettings = true)
+            if (!granted) Log.i(TAG, "notifications are not permitted")
+        }
+    }
+
+    private fun togglePush() {
+        if (OneSignal.User.pushSubscription.optedIn) {
+            OneSignal.User.pushSubscription.optOut()
+        } else {
+            OneSignal.User.pushSubscription.optIn()
+        }
+        refresh()
+    }
+
+    private fun refresh() {
+        val subscription = OneSignal.User.pushSubscription
+        pushToggle.text = getString(
+            if (subscription.optedIn) R.string.example_opt_out else R.string.example_opt_in,
+        )
+        subscriptionStatus.text = getString(
+            R.string.example_subscription,
+            subscription.id ?: "—",
+            OneSignal.User.externalId ?: "anonymous",
+        )
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        reportClick(intent)
+    }
+
+    /**
+     * A tapped notification carries its OpenPush message id. Clearing the extra
+     * keeps a configuration change or a later relaunch from reporting it twice.
+     */
+    private fun reportClick(intent: Intent?) {
+        val messageId = intent?.getStringExtra(ExampleMessagingService.EXTRA_MESSAGE_ID) ?: return
+        Log.i(TAG, "opened by notification · $messageId")
+        intent.removeExtra(ExampleMessagingService.EXTRA_MESSAGE_ID)
+    }
+
+    private companion object {
+        const val TAG = "MigratedExample"
+    }
+}

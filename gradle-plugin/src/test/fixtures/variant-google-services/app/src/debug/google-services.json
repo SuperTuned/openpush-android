@@ -1,0 +1,17 @@
+{
+  "project_info": {
+    "project_number": "123456789012",
+    "project_id": "fixture-debug",
+    "storage_bucket": "fixture-debug.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:123456789012:android:abcdef0123456789",
+        "android_client_info": { "package_name": "com.example.fixture" }
+      },
+      "api_key": [{ "current_key": "AIzaFixtureKey" }]
+    }
+  ],
+  "configuration_version": "1"
+}

@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Migrated From OneSignal</string>
+    <string name="notification_channel_name">Example pushes</string>
+    <string name="example_status">This app used to run on OneSignal v5</string>
+    <string name="example_opt_out">Stop receiving pushes</string>
+    <string name="example_opt_in">Receive pushes again</string>
+    <string name="example_subscription">subscription %1$s · user %2$s</string>
+    <string name="example_device_status">\ntoken %1$s\npermission granted %2$b\nlast push %3$s · %4$s</string>
+</resources>

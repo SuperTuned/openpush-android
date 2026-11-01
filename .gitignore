@@ -1,0 +1,34 @@
+# Build output
+.gradle/
+**/build/
+.kotlin/
+*.iml
+
+# IDE and OS
+.idea/
+.DS_Store
+
+# Machine-local settings and secrets
+local.properties
+.env
+.env.*
+*.jks
+*.keystore
+
+# App credentials and provider configuration belong to the developer running an app.
+# The setup plugin's test fixtures carry placeholder copies on purpose.
+**/openpush.properties
+**/google-services.json
+!gradle-plugin/src/test/fixtures/**/openpush.properties
+!gradle-plugin/src/test/fixtures/**/google-services.json
+
+# Local tooling and working notes
+PRODUCT.md
+DESIGN.md
+.impeccable/
+.claude/
+.superpowers/
+
+# JVM crash logs and compiler replay files (they record local paths)
+hs_err_pid*.log
+replay_pid*.log

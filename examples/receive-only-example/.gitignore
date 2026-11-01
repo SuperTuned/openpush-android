@@ -1,0 +1,8 @@
+.gradle/
+.idea/
+**/build/
+local.properties
+*.iml
+
+# Provider configuration belongs to the developer running the example.
+google-services.json

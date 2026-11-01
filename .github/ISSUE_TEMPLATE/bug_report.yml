@@ -1,0 +1,56 @@
+name: Bug report
+description: Something in the Android SDK does not work as documented.
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for the report. Please do not include SDK keys, device credentials, provider tokens or
+        personal data. Security issues go to SECURITY.md, not here.
+  - type: input
+    id: version
+    attributes:
+      label: SDK version
+      placeholder: "1.2.2"
+    validations:
+      required: true
+  - type: dropdown
+    id: modules
+    attributes:
+      label: Modules in use
+      multiple: true
+      options:
+        - openpush-android (core)
+        - openpush-android-fcm
+        - openpush-android-in-app-messages
+        - openpush-android-live-updates
+        - openpush-android-onesignal (compatibility layer)
+        - ai.openpush.setup Gradle plugin
+  - type: input
+    id: environment
+    attributes:
+      label: Environment
+      description: Android version and device or emulator, AGP and Gradle versions.
+      placeholder: "Android 15, Pixel 8; AGP 8.12.2; Gradle 8.13"
+    validations:
+      required: true
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened
+      description: What you did, what you expected, and what happened instead.
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Steps to reproduce
+      description: A minimal project or code snippet helps most.
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs
+      description: Relevant `OpenPush.onLog` output or stack traces, with secrets removed.
+      render: text

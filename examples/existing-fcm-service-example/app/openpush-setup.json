@@ -1,0 +1,18 @@
+{
+  "schema": "openpush-setup/1",
+  "platform": "android",
+  "found": [],
+  "choices": {
+    "android_delivery": {
+      "mode": "forward",
+      "service": "ai.openpush.example.existing.GameMessagingService",
+      "remove": []
+    },
+    "icons": {
+      "mode": "reuse",
+      "small": "@drawable/ic_stat_game",
+      "large": null,
+      "channel": "game_news"
+    }
+  }
+}

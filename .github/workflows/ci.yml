@@ -1,0 +1,124 @@
+name: Android SDK
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+# A newer push to the same pull request cancels the run it supersedes; runs on main always finish.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  public-content:
+    name: Public content
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
+        with:
+          persist-credentials: false
+      - name: Check public content
+        run: scripts/check-public-content.sh
+
+  build:
+    name: Build and test
+    runs-on: ubuntu-latest
+    # About 15 minutes on a hosted runner; the limit leaves room for slower local runs under emulation.
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
+        with:
+          persist-credentials: false
+      # The library modules build with a Java 17 toolchain, and the bytecode check below reads JAVA_HOME.
+      - uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5.7.0
+        with:
+          distribution: temurin
+          java-version: "17"
+      - uses: android-actions/setup-android@be39fa834029ff78f1a44aa3bb0819b8fc2bd8fd # v4.0.4
+      # android-34 is the platform the legacy D8 check dexes against.
+      - name: Install Android SDK 36
+        run: sdkmanager "platforms;android-36" "build-tools;36.0.0" "platforms;android-34"
+      # No `gradle-version`: the committed wrapper pins Gradle, so CI and a local checkout run the same
+      # build. The action also validates every committed wrapper jar, which matters for fork pull requests.
+      - uses: gradle/actions/setup-gradle@0723195856401067f7a2779048b490ace7a47d7c # v5.0.2
+      - name: Check Kotlin formatting
+        run: ./gradlew spotlessCheck
+      - name: Test and assemble
+        run: >
+          ./gradlew
+          :openpush:testDebugUnitTest :openpush:assembleRelease :openpush:lint
+          :openpush-fcm:testDebugUnitTest :openpush-fcm:assembleRelease :openpush-fcm:lint
+          :openpush-in-app-messages:testDebugUnitTest :openpush-in-app-messages:assembleRelease :openpush-in-app-messages:lint
+          :openpush-live-updates:testDebugUnitTest :openpush-live-updates:assembleRelease :openpush-live-updates:lint
+          :openpush-onesignal-compat:testDebugUnitTest :openpush-onesignal-compat:assembleRelease :openpush-onesignal-compat:lint
+      # Unity 2022.3 vendors these AARs and dexes them with AGP 7.1.2's D8, which rejects Java 17
+      # sealed classes and javac-21 enum MethodParameters. This keeps both regressions out.
+      - name: Legacy D8 (Unity 2022.3) dex check
+        run: ./gradlew legacyDexCheck
+      - name: Bytecode stays Java 11
+        run: scripts/check-bytecode.sh
+      - name: Check consumer rules
+        run: scripts/check-consumer-rules.sh
+      - name: Build receive-only example
+        working-directory: examples/receive-only-example
+        run: ./gradlew :app:assembleDebug
+      # The migrated example compiles only against the compatibility facade, so this
+      # step proves the facade carries every call site the migrated app already had:
+      # a missing member fails the build here.
+      - name: Build migrated-from-onesignal example
+        working-directory: examples/migrated-from-onesignal
+        run: ./gradlew :app:assembleDebug
+      # The FCM module example declares no messaging service of its own, so this
+      # step proves the module's merged components still arrive in a host app. Its
+      # release build is minified with nothing but the default optimized ProGuard
+      # configuration, so it is also the R8 proof for every module's consumer rules.
+      - name: Build fcm-module example
+        working-directory: examples/fcm-module-example
+        run: |
+          ./gradlew :app:assembleDebug :app:assembleRelease
+          # The background handler is named only in manifest meta-data; the SDK's keep rule must
+          # bring it through R8 unrenamed.
+          grep -q '^ai.openpush.example.fcm.ExampleBackgroundHandler -> ai.openpush.example.fcm.ExampleBackgroundHandler:' \
+            app/build/outputs/mapping/release/mapping.txt
+      # A host that keeps its own FirebaseMessagingService, set up by the gradle-plugin/ build in
+      # Forward mode: this proves the plugin applies the stored choices and the build guard passes.
+      - name: Build existing-fcm-service example
+        working-directory: examples/existing-fcm-service-example
+        run: ./gradlew :app:assembleDebug
+      # Publish smoke test: no signing secrets are exported here, so every module's
+      # `isRequired` resolves to false and the publication is unsigned. What this
+      # step guards is the POM metadata Maven Central rejects a release without.
+      - name: Publish smoke test
+        run: ./gradlew -q publishToMavenLocal
+      - name: Check published POM metadata
+        run: |
+          set -euo pipefail
+          version="$(sed -n 's/^OPENPUSH_VERSION=//p' gradle.properties)"
+          poms=$(ls ~/.m2/repository/ai/openpush/*/"$version"/*.pom)
+          count=$(echo "$poms" | wc -l | tr -d ' ')
+          if [ "$count" -ne 5 ]; then
+            echo "expected 5 published POMs, found $count"
+            echo "$poms"
+            exit 1
+          fi
+          status=0
+          for pom in $poms; do
+            for element in name description url licenses scm; do
+              if ! grep -q "<$element>" "$pom"; then
+                echo "$pom is missing <$element>"
+                status=1
+              fi
+            done
+          done
+          exit $status
+      # The setup plugin is a build of its own (gradle-plugin/). Its TestKit fixtures are real AGP
+      # builds of small apps, and the Forward fixture compiles against the SDK that the publish step
+      # above put in mavenLocal, so this step runs after it.
+      - name: Setup plugin tests
+        run: ./gradlew -p gradle-plugin test

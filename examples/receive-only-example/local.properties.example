@@ -1,0 +1,5 @@
+# Copy this file to local.properties and fill in your own values, or pass them
+# with -P on the Gradle command line. This tracked example contains no secrets.
+OPENPUSH_APP_ID=replace-with-app-id
+OPENPUSH_SDK_KEY=replace-with-public-sdk-key
+OPENPUSH_SERVER_URL=replace-with-server-url

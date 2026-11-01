@@ -1,0 +1,62 @@
+package ai.openpush.example.migrated
+
+import android.app.PendingIntent
+import android.content.Intent
+import android.util.Log
+import androidx.core.app.NotificationCompat
+import androidx.core.app.NotificationManagerCompat
+import com.google.firebase.messaging.FirebaseMessagingService
+import com.google.firebase.messaging.RemoteMessage
+
+/**
+ * This app owns its own `FirebaseMessagingService`: it displays its own
+ * notifications from the data payload.
+ */
+class ExampleMessagingService : FirebaseMessagingService() {
+
+    override fun onNewToken(token: String) {
+        Log.i(TAG, "provider token rotated")
+    }
+
+    override fun onMessageReceived(message: RemoteMessage) {
+        display(message.data)
+    }
+
+    private fun display(data: Map<String, String>) {
+        val manager = NotificationManagerCompat.from(this)
+        if (!manager.areNotificationsEnabled()) return
+
+        val messageId = data["op_message_id"]
+        val body = data["body"].orEmpty()
+        val notification = NotificationCompat.Builder(this, ExampleApplication.CHANNEL_ID)
+            .setSmallIcon(R.drawable.ic_stat_example)
+            .setContentTitle(data["title"] ?: getString(R.string.app_name))
+            .setContentText(body)
+            .setStyle(NotificationCompat.BigTextStyle().bigText(body))
+            .setAutoCancel(true)
+            .setContentIntent(tapIntent(messageId))
+            .build()
+        try {
+            manager.notify(messageId.hashCode(), notification)
+        } catch (_: SecurityException) {
+            Log.i(TAG, "notifications are disabled — nothing displayed")
+        }
+    }
+
+    private fun tapIntent(messageId: String?): PendingIntent {
+        val tap = Intent(this, MainActivity::class.java)
+            .putExtra(EXTRA_MESSAGE_ID, messageId)
+            .addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP)
+        return PendingIntent.getActivity(
+            this,
+            messageId.hashCode(),
+            tap,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+        )
+    }
+
+    companion object {
+        const val EXTRA_MESSAGE_ID = "op_message_id"
+        private const val TAG = "MigratedExample"
+    }
+}

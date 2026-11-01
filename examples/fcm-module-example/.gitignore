@@ -1,0 +1,10 @@
+.gradle/
+.idea/
+**/build/
+*.iml
+
+# App id and public SDK key belong to the developer running the example.
+local.properties
+
+# Provider configuration belongs to the developer running the example.
+google-services.json

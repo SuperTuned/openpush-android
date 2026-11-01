@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">OpenPush Feature Lab</string>
+    <string name="notification_channel_name">Feature lab notifications</string>
+    <string name="notification_sound_channel_name">Feature lab sound</string>
+    <string name="example_status">OpenPush receive-only example</string>
+    <string name="example_opt_out">Stop receiving pushes</string>
+    <string name="example_opt_in">Receive pushes again</string>
+    <string name="example_live_update_capability">Android Live Updates: %1$s</string>
+    <string name="example_live_update_settings">Enable promoted Live Updates</string>
+</resources>
