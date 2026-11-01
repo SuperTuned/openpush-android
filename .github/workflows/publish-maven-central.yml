@@ -1,0 +1,151 @@
+name: Publish to Maven Central
+
+# Manual only. Builds a released tag, signs it, uploads the bundle to the Central Portal and waits
+# for validation. The deployment is USER_MANAGED: nothing goes public until the owner presses
+# Publish in the portal. See RELEASING.md.
+#
+# Everything this needs lives in this file, so it also works for tags cut before it existed: the
+# tag's own build files are used unchanged (maven-publish + signing, keys from the environment).
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Release tag to publish, for example 1.2.2
+        required: true
+        type: string
+      include_compat:
+        description: Also publish the compatibility artifact (openpush-android-onesignal)
+        required: false
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    name: Publish ${{ inputs.tag }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    environment: maven-central
+    env:
+      TAG: ${{ inputs.tag }}
+      INCLUDE_COMPAT: ${{ inputs.include_compat }}
+    steps:
+      - name: Check tag format
+        run: |
+          [[ "$TAG" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo "::error::tag must look like 1.2.2"; exit 1; }
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
+        with:
+          ref: refs/tags/${{ inputs.tag }}
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Tag must point at main
+        run: git merge-base --is-ancestor HEAD origin/main || { echo "::error::Tag $TAG is not on main"; exit 1; }
+      - name: Version must match tag
+        run: |
+          version="$(sed -n 's/^OPENPUSH_VERSION=//p' gradle.properties)"
+          [ "$version" = "$TAG" ] || { echo "::error::gradle.properties has $version, tag is $TAG"; exit 1; }
+      - name: Select modules
+        run: |
+          echo "REPO_DIR=$RUNNER_TEMP/m2" >> "$GITHUB_ENV"
+          echo "BUNDLE=$RUNNER_TEMP/bundle.zip" >> "$GITHUB_ENV"
+          modules="openpush openpush-fcm openpush-in-app-messages openpush-live-updates"
+          if [ "$INCLUDE_COMPAT" = "true" ]; then modules="$modules openpush-onesignal-compat"; fi
+          echo "MODULES=$modules" >> "$GITHUB_ENV"
+      - uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5.7.0
+        with:
+          distribution: temurin
+          java-version: "17"
+      - uses: android-actions/setup-android@be39fa834029ff78f1a44aa3bb0819b8fc2bd8fd # v4.0.4
+      - name: Install Android SDK 36
+        run: sdkmanager "platforms;android-36" "build-tools;36.0.0"
+      - uses: gradle/actions/setup-gradle@0723195856401067f7a2779048b490ace7a47d7c # v5.0.2
+        with:
+          cache-read-only: true
+      - name: Unit tests
+        run: ./gradlew $(for m in $MODULES; do printf ':%s:testDebugUnitTest ' "$m"; done)
+      # mavenLocal is pointed at a throwaway directory, so the tag's build is used as it is.
+      - name: Build and sign
+        env:
+          MAVEN_SIGNING_KEY: ${{ secrets.MAVEN_SIGNING_KEY }}
+          MAVEN_SIGNING_PASSWORD: ${{ secrets.MAVEN_SIGNING_PASSWORD }}
+        run: |
+          [ -n "$MAVEN_SIGNING_KEY" ] && [ -n "$MAVEN_SIGNING_PASSWORD" ] || { echo "::error::signing secrets are not set"; exit 1; }
+          ./gradlew -Dmaven.repo.local="$REPO_DIR" $(for m in $MODULES; do printf ':%s:publishToMavenLocal ' "$m"; done)
+      - name: Check signatures and versions
+        run: |
+          set -euo pipefail
+          cd "$REPO_DIR"
+          bad=0
+          for dir in ai/openpush/*/*/; do
+            v="$(basename "$dir")"
+            [ "$v" = "$TAG" ] || { echo "::error::unexpected version $dir"; bad=1; }
+          done
+          artifacts=$(echo "$MODULES" | wc -w)
+          found=$(ls -d ai/openpush/*/"$TAG" | wc -l)
+          [ "$found" -eq "$artifacts" ] || { echo "::error::expected $artifacts artifacts, found $found"; bad=1; }
+          while IFS= read -r f; do
+            [ -f "$f.asc" ] || { echo "::error::no signature for $f"; bad=1; }
+          done < <(find ai/openpush -path "*/$TAG/*" -type f ! -name '*.asc')
+          for d in ai/openpush/*/"$TAG"; do
+            a="$(basename "$(dirname "$d")")"
+            for f in "$a-$TAG.pom" "$a-$TAG-sources.jar" "$a-$TAG-javadoc.jar"; do
+              [ -f "$d/$f" ] || { echo "::error::missing $d/$f"; bad=1; }
+            done
+          done
+          find ai/openpush -type f | sort
+          exit $bad
+      # Central needs .md5 and .sha1 next to every file except signatures; mavenLocal writes neither.
+      - name: Create bundle
+        run: |
+          set -euo pipefail
+          cd "$REPO_DIR"
+          find ai/openpush -name 'maven-metadata-local.xml' -delete
+          find ai/openpush -type f ! -name '*.asc' ! -name '*.md5' ! -name '*.sha1' | while IFS= read -r f; do
+            md5sum "$f" | cut -d' ' -f1 | tr -d '\n' > "$f.md5"
+            sha1sum "$f" | cut -d' ' -f1 | tr -d '\n' > "$f.sha1"
+          done
+          rm -f "$BUNDLE"
+          zip -qr "$BUNDLE" ai/openpush
+          unzip -l "$BUNDLE"
+      - name: Upload to Central Portal
+        env:
+          MAVEN_CENTRAL_USERNAME: ${{ secrets.MAVEN_CENTRAL_USERNAME }}
+          MAVEN_CENTRAL_PASSWORD: ${{ secrets.MAVEN_CENTRAL_PASSWORD }}
+        run: |
+          set -euo pipefail
+          token="$(printf '%s:%s' "$MAVEN_CENTRAL_USERNAME" "$MAVEN_CENTRAL_PASSWORD" | base64 -w0)"
+          echo "::add-mask::$token"
+          api="https://central.sonatype.com/api/v1/publisher"
+          id="$(curl --fail-with-body -sS -X POST \
+            "$api/upload?publishingType=USER_MANAGED&name=openpush-android-$TAG" \
+            -H "Authorization: Bearer $token" \
+            -F "bundle=@$BUNDLE")"
+          echo "Deployment id: $id"
+          for _ in $(seq 1 90); do
+            status="$(curl --fail-with-body -sS -X POST "$api/status?id=$id" -H "Authorization: Bearer $token")"
+            state="$(echo "$status" | jq -r .deploymentState)"
+            echo "State: $state"
+            case "$state" in
+              VALIDATED)
+                {
+                  echo "### openpush-android $TAG is validated on the Central Portal"
+                  echo "Deployment \`$id\`. Press **Publish** at https://central.sonatype.com/publishing/deployments to release it."
+                } >> "$GITHUB_STEP_SUMMARY"
+                echo "::notice::Validated. Press Publish at https://central.sonatype.com/publishing/deployments (deployment $id)."
+                exit 0 ;;
+              FAILED)
+                echo "$status" | jq '.errors'
+                echo "::error::Central Portal rejected deployment $id"
+                exit 1 ;;
+            esac
+            sleep 20
+          done
+          echo "::error::deployment $id did not finish validating in 30 minutes; check the portal"
+          exit 1
